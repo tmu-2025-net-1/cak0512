@@ -15,8 +15,8 @@ let usagizaLoaded = false;
 // 星座の座標設定（星空座標系での位置）
 const usagizaX = 1000; // 星空座標系でのX座標
 const usagizaY = 500; // 星空座標系でのY座標
-const usagizaWidth = 350; // 画像の幅
-const usagizaHeight = 200; // 画像の高さ
+const usagizaWidth = 400; // 画像の幅
+const usagizaHeight = 400; // 画像の高さ
 
 // 星座画像を読み込み
 usagizaImage.onload = () => {
