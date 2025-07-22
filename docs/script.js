@@ -16,6 +16,8 @@ const MIN_OFFSET_Y = 0;
 const MAX_OFFSET_X = STAR_FIELD_WIDTH - window.innerWidth;
 const MAX_OFFSET_Y = STAR_FIELD_HEIGHT - window.innerHeight;
 
+
+
 // 星を作る
 function createStars(count) {
   for (let i = 0; i < count; i++) {
@@ -38,6 +40,7 @@ function drawStars() {
     ctx.fillStyle = `rgba(255, 255, 255, ${0.8 * twinkle})`;
     ctx.fill();
   }
+
 }
 
 // アニメーションのループ（背景の星）
@@ -96,16 +99,23 @@ canvas.addEventListener('mouseleave', () => {
 // タイトルのフェードイン・フェードアウトアニメーション
 window.addEventListener('load', () => {
   const title = document.getElementById('title');
+  const usagiza = document.getElementById('usagiza');
   
   if (title) {
     // 1秒かけてフェードイン（透明度0→100）
     setTimeout(() => {
       title.style.opacity = '1';
+      if (usagiza) {
+        usagiza.style.opacity = '1';
+      }
     }, 100); // 少し遅延を入れて確実に実行
     
     // 4秒後（フェードイン1秒 + 表示3秒）にフェードアウト開始
     setTimeout(() => {
       title.style.opacity = '0';
+      if (usagiza) {
+        usagiza.style.opacity = '0';
+      }
     }, 4000);
   }
 });
