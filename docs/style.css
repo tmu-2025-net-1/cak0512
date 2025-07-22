@@ -23,11 +23,18 @@ body.dragging {
     left:50%;
     transform: translate(-50%, -50%);
     color: white;
-    font-size: 48px;
-    font-style: italic;
+    font-size: 80px;
+    font-family: 'NewStarWords', sans-serif;
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
     z-index: 10;
     pointer-events: none;
     opacity: 0;
     transition: opacity 1s ease-in-out;
+}
+
+@font-face{
+    font-family: 'NewStarWords';
+    src: url('./fonts/Newstarwords-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
 }
