@@ -64,8 +64,15 @@ function drawStars() {
     const screenX = usagizaX - offsetX;
     const screenY = usagizaY - offsetY;
     ctx.drawImage(usagizaImage, screenX, screenY, usagizaWidth, usagizaHeight);
+
+    // 星座名を表示
+    ctx.font = '100px NewStarWords, sans-serif';
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'center';
+    ctx.fillText('うさぎ', screenX + usagizaWidth / 2, screenY + usagizaHeight + 30);
   }
 }
+
 
 // アニメーションのループ（背景の星）
 function animate() {
