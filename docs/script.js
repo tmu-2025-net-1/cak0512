@@ -118,12 +118,27 @@ function drawStars() {
     
     const text = 'うさぎ';
     const lineHeight = 100; // 文字間の間隔
-    const startX = screenX + usagizaWidth + 250; // 星座画像の右側に配置
-    const startY = screenY + 70; // 開始Y座標
+    const startX = screenX + usagizaWidth + 450; // 星座画像の右側に配置
+    const startY = screenY + 20; // 開始Y座標
     
     // 一文字ずつ縦に描画
     for (let i = 0; i < text.length; i++) {
       ctx.fillText(text[i], startX, startY + (i * lineHeight));
+    }
+    
+    // 星座画像と「うさぎ」文字の間にテキストを表示
+    ctx.font = '50px NewStarWords, sans-serif';
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'center';
+    
+    const middleText = 'あんなに　おひさま';
+    const middleLineHeight = 50;
+    const middleStartX = screenX + usagizaWidth + 300; // 画像と「うさぎ」文字の間
+    const middleStartY = screenY ;
+    
+    // 一文字ずつ縦に描画
+    for (let i = 0; i < middleText.length; i++) {
+      ctx.fillText(middleText[i], middleStartX, middleStartY + (i * middleLineHeight));
     }
   }
 }
