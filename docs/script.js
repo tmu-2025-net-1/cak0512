@@ -8,6 +8,22 @@ let offsetX = 0, offsetY = 0;
 let dragging = false;
 let dragStartX, dragStartY;
 
+// 星座画像の変数
+let usagizaImage = new Image();
+let usagizaLoaded = false;
+
+// 星座の座標設定（星空座標系での位置）
+const usagizaX = 1000; // 星空座標系でのX座標
+const usagizaY = 500; // 星空座標系でのY座標
+const usagizaWidth = 350; // 画像の幅
+const usagizaHeight = 200; // 画像の高さ
+
+// 星座画像を読み込み
+usagizaImage.onload = () => {
+  usagizaLoaded = true;
+};
+usagizaImage.src = 'images/usagiza.PNG';
+
 // 星の移動範囲の制限
 const STAR_FIELD_WIDTH = 3000;
 const STAR_FIELD_HEIGHT = 3000;
@@ -30,9 +46,11 @@ function createStars(count) {
   }
 }
 
-// 星を描画する
+// 星と星座を描画する
 function drawStars() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // 星を描画
   for (let star of stars) {
     const twinkle = Math.sin(Date.now() * 0.002 + star.twinkle * 100) * 0.5 + 0.5;
     ctx.beginPath();
@@ -40,7 +58,13 @@ function drawStars() {
     ctx.fillStyle = `rgba(255, 255, 255, ${0.8 * twinkle})`;
     ctx.fill();
   }
-
+  
+  // 星座画像を描画
+  if (usagizaLoaded) {
+    const screenX = usagizaX - offsetX;
+    const screenY = usagizaY - offsetY;
+    ctx.drawImage(usagizaImage, screenX, screenY, usagizaWidth, usagizaHeight);
+  }
 }
 
 // アニメーションのループ（背景の星）
@@ -99,23 +123,16 @@ canvas.addEventListener('mouseleave', () => {
 // タイトルのフェードイン・フェードアウトアニメーション
 window.addEventListener('load', () => {
   const title = document.getElementById('title');
-  const usagiza = document.getElementById('usagiza');
   
   if (title) {
     // 1秒かけてフェードイン（透明度0→100）
     setTimeout(() => {
       title.style.opacity = '1';
-      if (usagiza) {
-        usagiza.style.opacity = '1';
-      }
     }, 100); // 少し遅延を入れて確実に実行
     
     // 4秒後（フェードイン1秒 + 表示3秒）にフェードアウト開始
     setTimeout(() => {
       title.style.opacity = '0';
-      if (usagiza) {
-        usagiza.style.opacity = '0';
-      }
     }, 4000);
   }
 });
