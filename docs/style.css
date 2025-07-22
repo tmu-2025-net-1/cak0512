@@ -32,21 +32,6 @@ body.dragging {
     transition: opacity 1s ease-in-out;
 }
 
-#poem {
-    position: absolute;
-    top: 200px;
-    left: 400px;
-    color: white;
-    font-size: 50px;
-    font-family: 'NewStarWords', sans-serif;
-    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
-    z-index: 10;
-    pointer-events: none;
-    writing-mode: vertical-rl; /* 縦書き */
-    text-orientation: upright;
-    line-height: 1.2;
-}
-
 @font-face{
     font-family: 'NewStarWords';
     src: url('./fonts/Newstarwords-Regular.ttf') format('truetype');

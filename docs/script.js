@@ -17,6 +17,13 @@ let animationDuration = 2000; // 2秒
 let startOffsetX = 0, startOffsetY = 0;
 let targetOffsetX = 0, targetOffsetY = 0;
 
+// 詩のアニメーション関連変数
+let poemAnimationState = 'idle'; // 'idle', 'moving', 'showing', 'returning'
+let currentPoemGroup = 0;
+let poemOpacity = 0;
+let titleOpacity = 0;
+let poemAnimationStartTime = 0;
+
 // 星座画像の変数
 let usagizaImage = new Image();
 let usagizaLoaded = false;
@@ -52,18 +59,23 @@ function easeInOutCubic(t) {
 function startUsagizaCenterAnimation() {
   if (isAnimating) return;
   
+  // 詩のアニメーションシーケンスを開始
+  poemAnimationState = 'moving';
+  currentPoemGroup = 0;
+  poemOpacity = 0;
+  titleOpacity = 0;
+  
   isAnimating = true;
   animationStartTime = Date.now();
   startOffsetX = offsetX;
   startOffsetY = offsetY;
   
-  // 星座画像の中心が画面中央に来るようなオフセットを計算
-  const centerX = window.innerWidth / 2;
+  // 詩全体が表示されるように星座画像を左側に配置
+  const targetScreenX = 100; // 画面左端から100pxの位置
   const centerY = window.innerHeight / 2;
-  const usagizaCenterX = usagizaX + usagizaWidth / 2;
   const usagizaCenterY = usagizaY + usagizaHeight / 2;
   
-  targetOffsetX = Math.max(MIN_OFFSET_X, Math.min(MAX_OFFSET_X, usagizaCenterX - centerX));
+  targetOffsetX = Math.max(MIN_OFFSET_X, Math.min(MAX_OFFSET_X, usagizaX - targetScreenX));
   targetOffsetY = Math.max(MIN_OFFSET_Y, Math.min(MAX_OFFSET_Y, usagizaCenterY - centerY));
 }
 
@@ -111,34 +123,75 @@ function drawStars() {
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
 
-    // 星座名を縦書きで表示
-    ctx.font = '100px NewStarWords, sans-serif';
-    ctx.fillStyle = 'white';
-    ctx.textAlign = 'center';
+    //ctx.fillStyle = 'white';
+    //ctx.textAlign = 'center';
     
-    const text = 'うさぎ';
-    const lineHeight = 100; // 文字間の間隔
-    const startX = screenX + usagizaWidth + 450; // 星座画像の右側に配置
-    const startY = screenY + 20; // 開始Y座標
+    // タイトルと詩
+    const title = 'うさぎ';
+    const poemLines = [
+      'あんなに　おひさま',
+      'わらってたのに', 
+      'きずいたときには',
+      'かえっていった',
+      'あんなに　はなが',
+      'さいてたのに',
+      'かぜに　のって',
+      'かえっていった',
+      'ほしぞら　ひとり',
+      'あるいていく',
+      'あしたを　ひとり',
+      'まっている',
+      'さみしい',
+      ' ',
+      ' ',
+      ' '
+    ];
     
-    // 一文字ずつ縦に描画
-    for (let i = 0; i < text.length; i++) {
-      ctx.fillText(text[i], startX, startY + (i * lineHeight));
-    }
+    const poemLineHeight = 50;
+    const columnSpacing = 100;
     
-    // 星座画像と「うさぎ」文字の間にテキストを表示
-    ctx.font = '50px NewStarWords, sans-serif';
-    ctx.fillStyle = 'white';
-    ctx.textAlign = 'center';
-    
-    const middleText = 'あんなに　おひさま';
-    const middleLineHeight = 50;
-    const middleStartX = screenX + usagizaWidth + 300; // 画像と「うさぎ」文字の間
-    const middleStartY = screenY ;
-    
-    // 一文字ずつ縦に描画
-    for (let i = 0; i < middleText.length; i++) {
-      ctx.fillText(middleText[i], middleStartX, middleStartY + (i * middleLineHeight));
+    // 詩のアニメーション中のみ表示
+    if (poemAnimationState !== 'idle') {
+      // 現在のグループの詩を表示（4行ずつ、タイトルは含まない）
+      const totalGroups = 4; // 1グループ目：4行、2グループ目：4行、3グループ目：4行、4グループ目：「さみしい」のみ
+      let currentLines = [];
+      
+      if (currentPoemGroup === 0) {
+        // 1グループ目：最初の4行
+        currentLines = poemLines.slice(0, 4);
+      } else if (currentPoemGroup === 1) {
+        // 2グループ目：次の4行
+        currentLines = poemLines.slice(4, 8);
+      } else if (currentPoemGroup === 2) {
+        // 3グループ目：次の4行
+        currentLines = poemLines.slice(8, 12);
+      } else if (currentPoemGroup === 3) {
+        // 4グループ目：「さみしい」のみ
+        currentLines = ['さみしい'];
+      }
+      
+      currentLines.forEach((line, columnIndex) => {
+        // 右から左の順番で配置（最後の列から最初の列の順）
+        const reverseIndex = currentLines.length - 1 - columnIndex;
+        const columnX = screenX + usagizaWidth + 50 + (reverseIndex * columnSpacing);
+        const startY = screenY + 50;
+        
+        ctx.font = '50px NewStarWords, sans-serif';
+        ctx.fillStyle = `rgba(255, 255, 255, ${poemOpacity})`;
+        
+        for (let i = 0; i < line.length; i++) {
+          ctx.fillText(line[i], columnX, startY + (i * poemLineHeight));
+        }
+      });
+      
+      // タイトルを一番右に表示
+      const titleX = screenX + usagizaWidth + 50 + (currentLines.length * columnSpacing);
+      const titleY = screenY + 50;
+      ctx.font = '80px NewStarWords, sans-serif';
+      ctx.fillStyle = `rgba(255, 255, 255, ${titleOpacity})`;
+      for (let i = 0; i < title.length; i++) {
+        ctx.fillText(title[i], titleX, titleY + (i * poemLineHeight));
+      }
     }
   }
 }
@@ -146,21 +199,92 @@ function drawStars() {
 
 // アニメーションのループ（背景の星）
 function animate() {
-  // アニメーション処理
-  if (isAnimating) {
-    const elapsed = Date.now() - animationStartTime;
+  const now = Date.now();
+  
+  // 詩のアニメーションシーケンス処理
+  if (poemAnimationState === 'moving') {
+    // 画像を左に移動中
+    const elapsed = now - animationStartTime;
     const progress = Math.min(elapsed / animationDuration, 1);
     const easedProgress = easeInOutCubic(progress);
     
-    // 現在のオフセットを計算
     offsetX = startOffsetX + (targetOffsetX - startOffsetX) * easedProgress;
     offsetY = startOffsetY + (targetOffsetY - startOffsetY) * easedProgress;
     
-    // アニメーション終了判定
     if (progress >= 1) {
+      poemAnimationState = 'showing';
+      poemAnimationStartTime = now;
+      titleOpacity = 0;
+      poemOpacity = 0;
+    }
+  } else if (poemAnimationState === 'showing') {
+    // 詩を表示中
+    const elapsed = now - poemAnimationStartTime;
+    const totalPoemGroups = 4; // タイトルを含まない4つのグループ
+    
+    if (currentPoemGroup < totalPoemGroups) {
+      // 現在のグループの表示サイクル
+      const cycleTime = 7000; // 1秒フェードイン + 5秒表示 + 1秒フェードアウト
+      const groupElapsed = elapsed - (currentPoemGroup * cycleTime);
+      
+      // タイトルは常に表示（フェード処理）
+      if (groupElapsed <= 1000) {
+        titleOpacity = Math.min(groupElapsed / 1000, 1);
+      } else {
+        titleOpacity = 1;
+      }
+      
+      // 詩のフェード処理
+      if (groupElapsed <= 1000) {
+        // フェードイン
+        poemOpacity = Math.min(groupElapsed / 1000, 1);
+      } else if (groupElapsed <= 6000) {
+        // 表示
+        poemOpacity = 1;
+      } else if (groupElapsed <= 7000) {
+        // フェードアウト
+        poemOpacity = Math.max(1 - (groupElapsed - 6000) / 1000, 0);
+      } else {
+        // 次のグループへ
+        currentPoemGroup++;
+        poemOpacity = 0;
+      }
+    } else {
+      // 全ての詩が終了、タイトルのフェードアウト
+      const titleFadeElapsed = elapsed - (totalPoemGroups * 7000);
+      if (titleFadeElapsed <= 1000) {
+        titleOpacity = Math.max(1 - titleFadeElapsed / 1000, 0);
+      } else {
+        // 画像を中央に戻す
+        poemAnimationState = 'returning';
+        animationStartTime = now;
+        startOffsetX = offsetX;
+        startOffsetY = offsetY;
+        
+        // 中央位置を計算
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+        const usagizaCenterX = usagizaX + usagizaWidth / 2;
+        const usagizaCenterY = usagizaY + usagizaHeight / 2;
+        
+        targetOffsetX = Math.max(MIN_OFFSET_X, Math.min(MAX_OFFSET_X, usagizaCenterX - centerX));
+        targetOffsetY = Math.max(MIN_OFFSET_Y, Math.min(MAX_OFFSET_Y, usagizaCenterY - centerY));
+      }
+    }
+  } else if (poemAnimationState === 'returning') {
+    // 画像を中央に戻し中
+    const elapsed = now - animationStartTime;
+    const progress = Math.min(elapsed / animationDuration, 1);
+    const easedProgress = easeInOutCubic(progress);
+    
+    offsetX = startOffsetX + (targetOffsetX - startOffsetX) * easedProgress;
+    offsetY = startOffsetY + (targetOffsetY - startOffsetY) * easedProgress;
+    
+    if (progress >= 1) {
+      poemAnimationState = 'idle';
       isAnimating = false;
-      offsetX = targetOffsetX;
-      offsetY = targetOffsetY;
+      titleOpacity = 0;
+      poemOpacity = 0;
     }
   }
   
@@ -224,7 +348,7 @@ canvas.addEventListener('mousedown', (e) => {
 
 // クリック処理（星座画像クリック時の中央移動）
 canvas.addEventListener('click', (e) => {
-  if (isHoveringUsagiza && !dragging) {
+  if (isHoveringUsagiza && !dragging && poemAnimationState === 'idle') {
     startUsagizaCenterAnimation();
   }
 });
