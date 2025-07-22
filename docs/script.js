@@ -167,7 +167,7 @@ function drawStars() {
         currentLines = poemLines.slice(8, 12);
       } else if (currentPoemGroup === 3) {
         // 4グループ目：「さみしい」のみ
-        currentLines = ['さみしい'];
+        currentLines = poemLines.slice(12, 16);
       }
       
       currentLines.forEach((line, columnIndex) => {
@@ -227,12 +227,8 @@ function animate() {
       const cycleTime = 7000; // 1秒フェードイン + 5秒表示 + 1秒フェードアウト
       const groupElapsed = elapsed - (currentPoemGroup * cycleTime);
       
-      // タイトルは常に表示（フェード処理）
-      if (groupElapsed <= 1000) {
-        titleOpacity = Math.min(groupElapsed / 1000, 1);
-      } else {
+      
         titleOpacity = 1;
-      }
       
       // 詩のフェード処理
       if (groupElapsed <= 1000) {
