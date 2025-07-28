@@ -9,6 +9,7 @@ let dragging = false;
 let dragStartX, dragStartY;
 let mouseX = 0, mouseY = 0;
 let isHoveringUsagiza = false;
+let isHoveringBack = false;
 
 // アニメーション関連の変数
 let isAnimating = false;
@@ -18,27 +19,32 @@ let startOffsetX = 0, startOffsetY = 0;
 let targetOffsetX = 0, targetOffsetY = 0;
 
 // 詩のアニメーション関連変数
-let poemAnimationState = 'idle'; // 'idle', 'moving', 'showing', 'returning'
+let poemAnimationState = 'idle'; // 'idle', 'moving', 'showing', 'returning', 'fadeOut'
 let currentPoemGroup = 0;
 let poemOpacity = 0;
 let titleOpacity = 0;
 let poemAnimationStartTime = 0;
 
 // 星座画像の変数
-let usagizaImage = new Image();
-let usagizaLoaded = false;
+let usagiLineImage = new Image();
+let usagiPointImage = new Image();
+let usagiLineLoaded = false;
+let usagiPointLoaded = false;
 
 // 星座の座標設定（星空座標系での位置）
 const usagizaX = 1000; // 星空座標系でのX座標
 const usagizaY = 500; // 星空座標系でのY座標
-const usagizaWidth = 530 * 0.7; // 画像の幅
-const usagizaHeight = 423 * 0.7; // 画像の高さ
 
-// 星座画像を読み込み
-usagizaImage.onload = () => {
-  usagizaLoaded = true;
+// 画像を読み込み
+usagiLineImage.onload = () => {
+  usagiLineLoaded = true;
 };
-usagizaImage.src = 'images/usagiza.PNG';
+usagiLineImage.src = 'images/usagi_line.PNG';
+
+usagiPointImage.onload = () => {
+  usagiPointLoaded = true;
+};
+usagiPointImage.src = 'images/usagi_point.PNG';
 
 // 星の移動範囲の制限
 const STAR_FIELD_WIDTH = 3000;
@@ -73,10 +79,21 @@ function startUsagizaCenterAnimation() {
   // 詩全体が表示されるように星座画像を左側に配置
   const targetScreenX = 100; // 画面左端から100pxの位置
   const centerY = window.innerHeight / 2;
+  const scaleFactor = 0.7;
+  const usagizaHeight = (usagiLineImage.height || 423) * scaleFactor;
   const usagizaCenterY = usagizaY + usagizaHeight / 2;
   
   targetOffsetX = Math.max(MIN_OFFSET_X, Math.min(MAX_OFFSET_X, usagizaX - targetScreenX));
   targetOffsetY = Math.max(MIN_OFFSET_Y, Math.min(MAX_OFFSET_Y, usagizaCenterY - centerY));
+}
+
+// 詩のアニメーションを中断して星座を中央に戻す
+function returnToCenter() {
+  if (poemAnimationState === 'idle') return;
+  
+  // まず詩とタイトルをフェードアウトする
+  poemAnimationState = 'fadeOut';
+  animationStartTime = Date.now();
 }
 
 // 星を作る
@@ -105,7 +122,7 @@ function drawStars() {
   }
   
   // 星座画像を描画
-  if (usagizaLoaded) {
+  if (usagiLineLoaded && usagiPointLoaded) {
     const screenX = usagizaX - offsetX;
     const screenY = usagizaY - offsetY;
     
@@ -117,7 +134,13 @@ function drawStars() {
       ctx.shadowOffsetY = 0;
     }
     
-    ctx.drawImage(usagizaImage, screenX, screenY, usagizaWidth, usagizaHeight);
+    // usagi_line.PNGとusagi_point.PNGを70%のサイズで描画
+    const scaleFactor = 0.7;
+    const scaledWidth = usagiLineImage.width * scaleFactor;
+    const scaledHeight = usagiLineImage.height * scaleFactor;
+    
+    ctx.drawImage(usagiLineImage, screenX, screenY, scaledWidth, scaledHeight);
+    ctx.drawImage(usagiPointImage, screenX, screenY, scaledWidth, scaledHeight);
     
     // シャドウをリセット
     ctx.shadowColor = 'transparent';
@@ -142,9 +165,9 @@ function drawStars() {
       'あしたを　ひとり',
       'まっている',
       'さみしい',
-      ' ',
-      ' ',
-      ' '
+      '　',
+      '　',
+      '　'
     ];
     
     const poemLineHeight = 50;
@@ -152,6 +175,11 @@ function drawStars() {
     
     // 詩のアニメーション中のみ表示
     if (poemAnimationState !== 'idle') {
+      // 画像の実際のサイズを70%に調整
+      const scaleFactor = 0.7;
+      const usagizaWidth = (usagiLineImage.width || 530) * scaleFactor;
+      const usagizaHeight = (usagiLineImage.height || 423) * scaleFactor;
+      
       // 現在のグループの詩を表示（4行ずつ、タイトルは含まない）
       const totalGroups = 4; // 1グループ目：4行、2グループ目：4行、3グループ目：4行、4グループ目：「さみしい」のみ
       let currentLines = [];
@@ -166,7 +194,7 @@ function drawStars() {
         // 3グループ目：次の4行
         currentLines = poemLines.slice(8, 12);
       } else if (currentPoemGroup === 3) {
-        // 4グループ目：「さみしい」のみ
+        // 4グループ目：次の4行
         currentLines = poemLines.slice(12, 16);
       }
       
@@ -184,14 +212,37 @@ function drawStars() {
         }
       });
       
-      // タイトルを一番右に表示
-      const titleX = screenX + usagizaWidth + 50 + (currentLines.length * columnSpacing);
+      // タイトルを常に同じ位置（4列分右の位置）に表示
+      const titleX = screenX + usagizaWidth + 50 + (4 * columnSpacing);
       const titleY = screenY + 50;
       ctx.font = '80px NewStarWords, sans-serif';
       ctx.fillStyle = `rgba(255, 255, 255, ${titleOpacity})`;
       for (let i = 0; i < title.length; i++) {
         ctx.fillText(title[i], titleX, titleY + (i * poemLineHeight));
       }
+      
+      // 「もどる」ボタンを表示
+      const backText = 'もどる';
+      const backX = screenX + usagizaWidth + 50 + (5 * columnSpacing);
+      const backY = screenY + 300;
+      ctx.font = '40px NewStarWords, sans-serif';
+      
+      // ホバー時のグロー効果
+      if (isHoveringBack) {
+        ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+      }
+      
+      ctx.fillStyle = `rgba(255, 255, 255, ${titleOpacity})`;
+      for (let i = 0; i < backText.length; i++) {
+        ctx.fillText(backText[i], backX, backY + (i * 40));
+      }
+      
+      // シャドウをリセット
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
     }
   }
 }
@@ -227,8 +278,18 @@ function animate() {
       const cycleTime = 7000; // 1秒フェードイン + 5秒表示 + 1秒フェードアウト
       const groupElapsed = elapsed - (currentPoemGroup * cycleTime);
       
-      
+      // タイトルのフェード処理（最初のグループの時のみフェードイン、その後は表示し続ける）
+      if (currentPoemGroup === 0) {
+        // 最初のグループのみフェードイン
+        if (groupElapsed <= 1000) {
+          titleOpacity = Math.min(groupElapsed / 1000, 1);
+        } else {
+          titleOpacity = 1;
+        }
+      } else {
+        // 2グループ目以降は常に表示
         titleOpacity = 1;
+      }
       
       // 詩のフェード処理
       if (groupElapsed <= 1000) {
@@ -260,12 +321,45 @@ function animate() {
         // 中央位置を計算
         const centerX = window.innerWidth / 2;
         const centerY = window.innerHeight / 2;
+        const scaleFactor = 0.7;
+        const usagizaWidth = (usagiLineImage.width || 530) * scaleFactor;
+        const usagizaHeight = (usagiLineImage.height || 423) * scaleFactor;
         const usagizaCenterX = usagizaX + usagizaWidth / 2;
         const usagizaCenterY = usagizaY + usagizaHeight / 2;
         
         targetOffsetX = Math.max(MIN_OFFSET_X, Math.min(MAX_OFFSET_X, usagizaCenterX - centerX));
         targetOffsetY = Math.max(MIN_OFFSET_Y, Math.min(MAX_OFFSET_Y, usagizaCenterY - centerY));
       }
+    }
+  } else if (poemAnimationState === 'fadeOut') {
+    // 詩とタイトルをフェードアウト中
+    const elapsed = now - animationStartTime;
+    const fadeOutDuration = 1000; // 1秒でフェードアウト
+    
+    if (elapsed <= fadeOutDuration) {
+      const progress = elapsed / fadeOutDuration;
+      titleOpacity = Math.max(1 - progress, 0);
+      poemOpacity = Math.max(1 - progress, 0);
+    } else {
+      // フェードアウト完了、中央に戻すアニメーション開始
+      titleOpacity = 0;
+      poemOpacity = 0;
+      poemAnimationState = 'returning';
+      animationStartTime = now;
+      startOffsetX = offsetX;
+      startOffsetY = offsetY;
+      
+      // 中央位置を計算
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+      const scaleFactor = 0.7;
+      const usagizaWidth = (usagiLineImage.width || 530) * scaleFactor;
+      const usagizaHeight = (usagiLineImage.height || 423) * scaleFactor;
+      const usagizaCenterX = usagizaX + usagizaWidth / 2;
+      const usagizaCenterY = usagizaY + usagizaHeight / 2;
+      
+      targetOffsetX = Math.max(MIN_OFFSET_X, Math.min(MAX_OFFSET_X, usagizaCenterX - centerX));
+      targetOffsetY = Math.max(MIN_OFFSET_Y, Math.min(MAX_OFFSET_Y, usagizaCenterY - centerY));
     }
   } else if (poemAnimationState === 'returning') {
     // 画像を中央に戻し中
@@ -285,11 +379,28 @@ function animate() {
   }
   
   // ホバー判定を更新
-  if (usagizaLoaded) {
+  if (usagiLineLoaded && usagiPointLoaded) {
     const screenX = usagizaX - offsetX;
     const screenY = usagizaY - offsetY;
+    const scaleFactor = 0.7;
+    const usagizaWidth = (usagiLineImage.width || 530) * scaleFactor;
+    const usagizaHeight = (usagiLineImage.height || 423) * scaleFactor;
     isHoveringUsagiza = mouseX >= screenX && mouseX <= screenX + usagizaWidth &&
                        mouseY >= screenY && mouseY <= screenY + usagizaHeight;
+    
+    // 「もどる」ボタンのホバー判定（詩のアニメーション中のみ）
+    if (poemAnimationState !== 'idle') {
+      const columnSpacing = 100;
+      const backX = screenX + usagizaWidth + 50 + (5 * columnSpacing);
+      const backY = screenY + 300;
+      const backWidth = 40; // フォントサイズに基づく幅
+      const backHeight = 40 * 3; // 3文字分の高さ
+      
+      isHoveringBack = mouseX >= backX - 20 && mouseX <= backX + backWidth + 20 &&
+                      mouseY >= backY - 20 && mouseY <= backY + backHeight + 20;
+    } else {
+      isHoveringBack = false;
+    }
   }
   
   drawStars();
@@ -342,10 +453,14 @@ canvas.addEventListener('mousedown', (e) => {
     document.body.classList.add('dragging');
 });
 
-// クリック処理（星座画像クリック時の中央移動）
+// クリック処理（星座画像クリック時の中央移動、もどるボタンクリック時の中央復帰）
 canvas.addEventListener('click', (e) => {
-  if (isHoveringUsagiza && !dragging && poemAnimationState === 'idle') {
-    startUsagizaCenterAnimation();
+  if (!dragging) {
+    if (isHoveringUsagiza && poemAnimationState === 'idle') {
+      startUsagizaCenterAnimation();
+    } else if (isHoveringBack && poemAnimationState !== 'idle') {
+      returnToCenter();
+    }
   }
 });
 
