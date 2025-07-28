@@ -30,6 +30,20 @@ let usagiLineImage = new Image();
 let usagiPointImage = new Image();
 let usagiLineLoaded = false;
 let usagiPointLoaded = false;
+let usagiLineOpacity = 0; // usagi_line.PNGの透明度（0-1）
+let usagiLineTargetOpacity = 0; // 目標透明度
+let usagiLineOpacityAnimationStart = 0; // 透明度アニメーション開始時刻
+
+// 音声関連の変数
+let bellSound = new Audio('sounds/bell.mp3');
+let isNearUsagiza = false; // 周囲50px内にいるかどうか
+let hasPlayedNearSound = false; // 周囲音声を再生済みかどうか
+let hasPlayedHoverSound = false; // ホバー音声を再生済みかどうか
+let audioInitialized = false; // 音声が初期化されたかどうか
+
+// 音声ファイルの事前読み込み
+bellSound.preload = 'auto';
+bellSound.load();
 
 // 星座の座標設定（星空座標系での位置）
 const usagizaX = 1000; // 星空座標系でのX座標
@@ -61,6 +75,52 @@ function easeInOutCubic(t) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
+// 音声再生関数
+function playBellSound(volume) {
+  try {
+    // 音声の初期化を最初のクリック時に行う
+    if (!audioInitialized) {
+      bellSound.load();
+      audioInitialized = true;
+    }
+    
+    bellSound.currentTime = 0; // 音声を最初から再生
+    bellSound.volume = volume;
+    
+    // Promiseベースの再生
+    const playPromise = bellSound.play();
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          console.log('音声再生成功:', volume * 100 + '%音量');
+        })
+        .catch(error => {
+          console.log('音声再生エラー:', error);
+        });
+    }
+  } catch (error) {
+    console.log('音声再生エラー:', error);
+  }
+}
+
+// 音声を初期化する関数（最初のユーザー操作時に呼び出し）
+function initializeAudio() {
+  if (!audioInitialized) {
+    try {
+      bellSound.play().then(() => {
+        bellSound.pause();
+        bellSound.currentTime = 0;
+        audioInitialized = true;
+        console.log('音声初期化完了');
+      }).catch(() => {
+        console.log('音声初期化失敗');
+      });
+    } catch (error) {
+      console.log('音声初期化エラー:', error);
+    }
+  }
+}
+
 // 星座を中央に移動するアニメーション開始
 function startUsagizaCenterAnimation() {
   if (isAnimating) return;
@@ -70,6 +130,18 @@ function startUsagizaCenterAnimation() {
   currentPoemGroup = 0;
   poemOpacity = 0;
   titleOpacity = 0;
+  
+  // usagi_line.PNGを100%透明度にアニメーション開始（60%から100%へ）
+  if (usagiLineOpacity === 0.6) {
+    // ホバー状態の60%から100%に上げる
+    usagiLineTargetOpacity = 1.0;
+    usagiLineOpacityAnimationStart = 0;
+  } else {
+    // ホバーしていない状態でクリックした場合は、まず60%にしてから100%に
+    usagiLineOpacity = 0.6;
+    usagiLineTargetOpacity = 1.0;
+    usagiLineOpacityAnimationStart = 0;
+  }
   
   isAnimating = true;
   animationStartTime = Date.now();
@@ -94,6 +166,10 @@ function returnToCenter() {
   // まず詩とタイトルをフェードアウトする
   poemAnimationState = 'fadeOut';
   animationStartTime = Date.now();
+  
+  // usagi_line.PNGを非表示にアニメーション開始
+  usagiLineTargetOpacity = 0;
+  usagiLineOpacityAnimationStart = 0;
 }
 
 // 星を作る
@@ -139,7 +215,14 @@ function drawStars() {
     const scaledWidth = usagiLineImage.width * scaleFactor;
     const scaledHeight = usagiLineImage.height * scaleFactor;
     
-    ctx.drawImage(usagiLineImage, screenX, screenY, scaledWidth, scaledHeight);
+    // usagi_line.PNGを透明度付きで描画（0の時は描画しない）
+    if (usagiLineOpacity > 0) {
+      ctx.globalAlpha = usagiLineOpacity;
+      ctx.drawImage(usagiLineImage, screenX, screenY, scaledWidth, scaledHeight);
+      ctx.globalAlpha = 1.0; // 透明度をリセット
+    }
+    
+    // usagi_point.PNGは常に描画
     ctx.drawImage(usagiPointImage, screenX, screenY, scaledWidth, scaledHeight);
     
     // シャドウをリセット
@@ -252,6 +335,30 @@ function drawStars() {
 function animate() {
   const now = Date.now();
   
+  // usagi_line.PNGの透明度アニメーション処理
+  if (usagiLineTargetOpacity !== usagiLineOpacity) {
+    if (usagiLineOpacityAnimationStart === 0) {
+      usagiLineOpacityAnimationStart = now;
+    }
+    
+    const opacityElapsed = now - usagiLineOpacityAnimationStart;
+    const opacityDuration = (usagiLineTargetOpacity > usagiLineOpacity) ? 2000 : 100; // フェードイン2秒、フェードアウト0.1秒
+    const opacityProgress = Math.min(opacityElapsed / opacityDuration, 1);
+    
+    if (usagiLineTargetOpacity > usagiLineOpacity) {
+      // フェードイン
+      usagiLineOpacity = usagiLineTargetOpacity * opacityProgress;
+    } else {
+      // フェードアウト
+      usagiLineOpacity = usagiLineOpacity * (1 - opacityProgress);
+    }
+    
+    if (opacityProgress >= 1) {
+      usagiLineOpacity = usagiLineTargetOpacity;
+      usagiLineOpacityAnimationStart = 0;
+    }
+  }
+  
   // 詩のアニメーションシーケンス処理
   if (poemAnimationState === 'moving') {
     // 画像を左に移動中
@@ -307,16 +414,24 @@ function animate() {
         poemOpacity = 0;
       }
     } else {
-      // 全ての詩が終了、タイトルのフェードアウト
+      // 全ての詩が終了、タイトルとusagi_line.PNGのフェードアウト
       const titleFadeElapsed = elapsed - (totalPoemGroups * 7000);
       if (titleFadeElapsed <= 1000) {
-        titleOpacity = Math.max(1 - titleFadeElapsed / 1000, 0);
+        const fadeProgress = titleFadeElapsed / 1000;
+        titleOpacity = Math.max(1 - fadeProgress, 0);
+        // usagi_line.PNGも同時にフェードアウト（直接制御）
+        usagiLineOpacity = Math.max(1 - fadeProgress, 0);
       } else {
         // 画像を中央に戻す
         poemAnimationState = 'returning';
         animationStartTime = now;
         startOffsetX = offsetX;
         startOffsetY = offsetY;
+        
+        // usagi_line.PNGの透明度を確実にリセット
+        usagiLineOpacity = 0;
+        usagiLineTargetOpacity = 0;
+        usagiLineOpacityAnimationStart = 0;
         
         // 中央位置を計算
         const centerX = window.innerWidth / 2;
@@ -340,10 +455,13 @@ function animate() {
       const progress = elapsed / fadeOutDuration;
       titleOpacity = Math.max(1 - progress, 0);
       poemOpacity = Math.max(1 - progress, 0);
+      // usagi_line.PNGも同時にフェードアウト（直接制御）
+      usagiLineOpacity = Math.max(1 - progress, 0);
     } else {
       // フェードアウト完了、中央に戻すアニメーション開始
       titleOpacity = 0;
       poemOpacity = 0;
+      usagiLineOpacity = 0; // 確実にリセット
       poemAnimationState = 'returning';
       animationStartTime = now;
       startOffsetX = offsetX;
@@ -375,6 +493,10 @@ function animate() {
       isAnimating = false;
       titleOpacity = 0;
       poemOpacity = 0;
+      
+      // usagi_line.PNGの透明度をリセット（ホバー状態に応じて設定）
+      usagiLineTargetOpacity = isHoveringUsagiza ? 0.6 : 0;
+      usagiLineOpacityAnimationStart = 0;
     }
   }
   
@@ -385,8 +507,49 @@ function animate() {
     const scaleFactor = 0.7;
     const usagizaWidth = (usagiLineImage.width || 530) * scaleFactor;
     const usagizaHeight = (usagiLineImage.height || 423) * scaleFactor;
+    
+    // 星座画像の中心座標を計算
+    const usagizaCenterX = screenX + usagizaWidth / 2;
+    const usagizaCenterY = screenY + usagizaHeight / 2;
+    
+    // マウスと星座中心の距離を計算
+    const distance = Math.sqrt(
+      Math.pow(mouseX - usagizaCenterX, 2) + Math.pow(mouseY - usagizaCenterY, 2)
+    );
+    
+    // ホバー判定（画像範囲内）
+    const wasHoveringUsagiza = isHoveringUsagiza;
     isHoveringUsagiza = mouseX >= screenX && mouseX <= screenX + usagizaWidth &&
                        mouseY >= screenY && mouseY <= screenY + usagizaHeight;
+    
+    // 周囲550px判定
+    const wasNearUsagiza = isNearUsagiza;
+    isNearUsagiza = distance <= 550;
+    
+    // 音声再生ロジック（アイドル状態のみ）
+    if (poemAnimationState === 'idle') {
+      // 周囲550px内に入った時（10%音量で再生）
+      if (isNearUsagiza && !wasNearUsagiza && !hasPlayedNearSound) {
+        console.log('550px内に接近しました');
+        playBellSound(0.1);
+        hasPlayedNearSound = true;
+        hasPlayedHoverSound = false; // ホバー音声のフラグをリセット
+      }
+      
+      // ホバー時（50%音量で再生）
+      if (isHoveringUsagiza && !wasHoveringUsagiza && !hasPlayedHoverSound && isNearUsagiza) {
+        console.log('星座にホバーしました');
+        playBellSound(0.5);
+        hasPlayedHoverSound = true;
+      }
+
+      // 周囲550px外に出た時にフラグをリセット
+      if (!isNearUsagiza && wasNearUsagiza) {
+        console.log('550px外に出ました');
+        hasPlayedNearSound = false;
+        hasPlayedHoverSound = false;
+      }
+    }
     
     // 「もどる」ボタンのホバー判定（詩のアニメーション中のみ）
     if (poemAnimationState !== 'idle') {
@@ -436,6 +599,25 @@ canvas.addEventListener('mousemove', (e) => {
     offsetX = Math.max(MIN_OFFSET_X, Math.min(MAX_OFFSET_X, newOffsetX));
     offsetY = Math.max(MIN_OFFSET_Y, Math.min(MAX_OFFSET_Y, newOffsetY));
   }
+  
+  // usagi_line.PNGの透明度制御（ホバー時）
+  if (poemAnimationState === 'idle') {
+    // アイドル状態でのみホバー効果を適用
+    if (isHoveringUsagiza) {
+      // ホバー中：60%透明度で表示
+      if (usagiLineTargetOpacity !== 0.6) {
+        usagiLineTargetOpacity = 0.6;
+        usagiLineOpacityAnimationStart = 0;
+      }
+    } else {
+      // ホバーしていない：非表示
+      if (usagiLineTargetOpacity !== 0) {
+        usagiLineTargetOpacity = 0;
+        usagiLineOpacityAnimationStart = 0;
+      }
+    }
+  }
+  // moving状態では、クリック時に既に透明度が設定されているため、ここでは制御しない
 });
 
 // 小さな星を散りばめる（背景）
@@ -455,6 +637,9 @@ canvas.addEventListener('mousedown', (e) => {
 
 // クリック処理（星座画像クリック時の中央移動、もどるボタンクリック時の中央復帰）
 canvas.addEventListener('click', (e) => {
+  // 最初のクリック時に音声を初期化
+  initializeAudio();
+  
   if (!dragging) {
     if (isHoveringUsagiza && poemAnimationState === 'idle') {
       startUsagizaCenterAnimation();
