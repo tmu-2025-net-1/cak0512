@@ -535,7 +535,7 @@ function animate() {
       const totalGroups = 4;
       
       if (state.currentPoemGroup < totalGroups) {
-        const cycleTime = 7000;
+        const cycleTime = 5000;
         const groupElapsed = elapsed - (state.currentPoemGroup * cycleTime);
         
         if (state.currentPoemGroup === 0) {
@@ -550,16 +550,16 @@ function animate() {
         
         if (groupElapsed <= 1000) {
           state.poemOpacity = Math.min(groupElapsed / 1000, 1);
-        } else if (groupElapsed <= 6000) {
+        } else if (groupElapsed <= 4000) {
           state.poemOpacity = 1;
-        } else if (groupElapsed <= 7000) {
-          state.poemOpacity = Math.max(1 - (groupElapsed - 6000) / 1000, 0);
+        } else if (groupElapsed <= 5000) {
+          state.poemOpacity = Math.max(1 - (groupElapsed - 4000) / 1000, 0);
         } else {
           state.currentPoemGroup++;
           state.poemOpacity = 0;
         }
       } else {
-        const titleFadeElapsed = elapsed - (totalGroups * 7000);
+        const titleFadeElapsed = elapsed - (totalGroups * 5000);
         if (titleFadeElapsed <= 1000) {
           const fadeProgress = titleFadeElapsed / 1000;
           state.titleOpacity = Math.max(1 - fadeProgress, 0);
