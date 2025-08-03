@@ -187,11 +187,7 @@ const CONSTELLATIONS = [
 ];
 
 // システム変数
-const canvas = document.getElementById('starCanvas');
-const ctx = canvas.getContext('2d');
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
+let canvas, ctx;
 let stars = [];
 let offsetX = 0, offsetY = 0;
 let dragging = false;
@@ -684,80 +680,148 @@ function animate() {
         if (state.poemAnimationState === 'idle') {
           state.lineTargetOpacity = 0.6;
           state.lineOpacityAnimationStart = 0;
+          canvas.classList.add('hovering-constellation');
         }
       } else if (!state.isHovering && wasHovering) {
         if (state.poemAnimationState === 'idle') {
           state.lineTargetOpacity = 0;
           state.lineOpacityAnimationStart = 0;
+          canvas.classList.remove('hovering-constellation');
         }
       }
     }
   });
   
+  // 星座がホバーされていない場合は通常のカーソル
+  let anyHovering = false;
+  CONSTELLATIONS.forEach(constellation => {
+    const state = constellationStates[constellation.name];
+    if (state.isHovering && state.poemAnimationState === 'idle') {
+      anyHovering = true;
+    }
+  });
+  
+  if (!anyHovering && !dragging && !activeConstellation) {
+    canvas.classList.remove('hovering-constellation');
+  }
+  
   drawStars();
   requestAnimationFrame(animate);
 }
 
-// イベントリスナー
-canvas.addEventListener('mousedown', (e) => {
-  if (activeConstellation) return;
-  
-  dragging = true;
-  dragStartX = e.clientX + offsetX;
-  dragStartY = e.clientY + offsetY;
-});
 
-canvas.addEventListener('mouseup', () => {
-  dragging = false;
-});
 
-canvas.addEventListener('mousemove', (e) => {
-  mouseX = e.clientX;
-  mouseY = e.clientY;
+// 初期化関数
+function initializeCanvas() {
+  canvas = document.getElementById('starCanvas');
+  ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
   
-  if (dragging && !activeConstellation) {
-    const newOffsetX = dragStartX - e.clientX;
-    const newOffsetY = dragStartY - e.clientY;
+  // 初期状態では星空操作を無効にする
+  canvas.classList.add('disabled');
+  
+  // 星を作成してアニメーション開始
+  createStars(1000);
+  animate();
+  
+  // イベントリスナーを追加
+  addCanvasEventListeners();
+}
+
+// イベントリスナー追加関数
+function addCanvasEventListeners() {
+  canvas.addEventListener('mousedown', (e) => {
+    if (activeConstellation || !starFieldAccessible) return;
     
-    offsetX = Math.max(MIN_OFFSET_X, Math.min(MAX_OFFSET_X, newOffsetX));
-    offsetY = Math.max(MIN_OFFSET_Y, Math.min(MAX_OFFSET_Y, newOffsetY));
-  }
-});
-
-canvas.addEventListener('click', (e) => {
-  initializeAudio();
-  
-  if (!dragging) {
-    // どの星座がクリックされたかチェック
-    CONSTELLATIONS.forEach(constellation => {
-      const state = constellationStates[constellation.name];
-      if (state.isHovering && !activeConstellation) {
-        startConstellationAnimation(constellation.name);
-      }
-    });
+    // ブラウザのデフォルトドラッグを防止
+    e.preventDefault();
     
-    // もどるボタンのクリック判定
-    if (activeConstellation) {
-      const activeState = constellationStates[activeConstellation];
-      const activeConst = CONSTELLATIONS.find(c => c.name === activeConstellation);
-      const screenX = activeConst.x - offsetX;
-      const screenY = activeConst.y - offsetY;
-      const scaleFactor = 0.7;
-      const scaledWidth = activeState.lineImage.width * scaleFactor;
-      const backX = screenX + scaledWidth + 50 + (5 * 100);
-      const backY = screenY + 300;
+    dragging = true;
+    document.body.classList.add('dragging');
+    canvas.classList.add('dragging');
+    dragStartX = e.clientX + offsetX;
+    dragStartY = e.clientY + offsetY;
+  });
+
+  canvas.addEventListener('mouseup', (e) => {
+    // aboutVisibleに関係なくドラッグ状態は解除
+    if (dragging) {
+      dragging = false;
+      document.body.classList.remove('dragging');
+      canvas.classList.remove('dragging');
+    }
+  });
+
+  canvas.addEventListener('mouseleave', (e) => {
+    // aboutVisibleに関係なくドラッグ状態は解除
+    if (dragging) {
+      dragging = false;
+      document.body.classList.remove('dragging');
+      canvas.classList.remove('dragging');
+    }
+  });
+
+  canvas.addEventListener('mousemove', (e) => {
+    if (!starFieldAccessible) return;
+    
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    
+    if (dragging && !activeConstellation) {
+      // ブラウザのデフォルト動作を防止
+      e.preventDefault();
       
-      if (mouseX >= backX - 20 && mouseX <= backX + 60 &&
-          mouseY >= backY - 20 && mouseY <= backY + 140) {
-        returnToCenter();
+      const newOffsetX = dragStartX - e.clientX;
+      const newOffsetY = dragStartY - e.clientY;
+      
+      offsetX = Math.max(MIN_OFFSET_X, Math.min(MAX_OFFSET_X, newOffsetX));
+      offsetY = Math.max(MIN_OFFSET_Y, Math.min(MAX_OFFSET_Y, newOffsetY));
+    }
+  });
+
+  canvas.addEventListener('click', (e) => {
+    if (!starFieldAccessible) return;
+    
+    initializeAudio();
+    
+    if (!dragging) {
+      // どの星座がクリックされたかチェック
+      CONSTELLATIONS.forEach(constellation => {
+        const state = constellationStates[constellation.name];
+        if (state.isHovering && !activeConstellation) {
+          startConstellationAnimation(constellation.name);
+        }
+      });
+      
+      // もどるボタンのクリック判定
+      if (activeConstellation) {
+        const activeState = constellationStates[activeConstellation];
+        const activeConst = CONSTELLATIONS.find(c => c.name === activeConstellation);
+        const screenX = activeConst.x - offsetX;
+        const screenY = activeConst.y - offsetY;
+        const scaleFactor = 0.7;
+        const scaledWidth = activeState.lineImage.width * scaleFactor;
+        const backX = screenX + scaledWidth + 50 + (5 * 100);
+        const backY = screenY + 300;
+        
+        if (mouseX >= backX - 20 && mouseX <= backX + 60 &&
+            mouseY >= backY - 20 && mouseY <= backY + 140) {
+          returnToCenter();
+        }
       }
     }
-  }
-});
-
-// 初期化
-createStars(1000);
-animate();
+  });
+  
+  // グローバルなmouseupイベントでドラッグ状態を確実に解除
+  document.addEventListener('mouseup', () => {
+    if (dragging) {
+      dragging = false;
+      document.body.classList.remove('dragging');
+      canvas.classList.remove('dragging');
+    }
+  });
+}
 
 // ウィンドウリサイズ時の処理
 window.addEventListener('resize', () => {
@@ -771,6 +835,79 @@ window.addEventListener('resize', () => {
   offsetY = Math.max(MIN_OFFSET_Y, Math.min(newMaxOffsetY, offsetY));
 });
 
+// About画像管理
+let currentAboutImage = 1;
+let aboutVisible = false;
+let starFieldAccessible = false; // 星空操作が許可されているかどうか
+
+function showAboutImage() {
+  const aboutContainer = document.getElementById('aboutContainer');
+  const aboutImage = document.getElementById('aboutImage');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  
+  aboutContainer.style.opacity = '1';
+  aboutContainer.classList.add('visible');
+  aboutVisible = true;
+  
+  updateAboutImage();
+  updateNavigationButtons();
+}
+
+function hideAboutImage() {
+  const aboutContainer = document.getElementById('aboutContainer');
+  aboutContainer.style.opacity = '0';
+  aboutContainer.classList.remove('visible');
+  aboutVisible = false;
+  
+  // 星空操作を有効にする
+  starFieldAccessible = true;
+  
+  // canvasの無効状態を解除
+  canvas.classList.remove('disabled');
+  
+  // canvasのpointer-eventsを復活
+  canvas.style.pointerEvents = 'auto';
+}
+
+function updateAboutImage() {
+  const aboutImage = document.getElementById('aboutImage');
+  aboutImage.src = `images/about${currentAboutImage}.png`;
+}
+
+function updateNavigationButtons() {
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const startBtn = document.getElementById('startBtn');
+  
+  // about1の時は左ボタンを隠す、about2の時は右ボタンを隠す
+  if (currentAboutImage === 1) {
+    prevBtn.classList.add('hidden');
+    nextBtn.classList.remove('hidden');
+    startBtn.classList.remove('visible');
+  } else {
+    prevBtn.classList.remove('hidden');
+    nextBtn.classList.add('hidden');
+    startBtn.classList.add('visible');
+  }
+}
+
+function nextAboutImage() {
+  if (currentAboutImage < 2) {
+    currentAboutImage++;
+    updateAboutImage();
+    updateNavigationButtons();
+  }
+}
+
+function prevAboutImage() {
+  if (currentAboutImage > 1) {
+    currentAboutImage--;
+    updateAboutImage();
+    updateNavigationButtons();
+  }
+}
+
 // タイトルのフェードイン・フェードアウトアニメーション
 window.addEventListener('load', () => {
   const title = document.getElementById('title');
@@ -782,6 +919,45 @@ window.addEventListener('load', () => {
     
     setTimeout(() => {
       title.style.opacity = '0';
+      // タイトルフェードアウト後、about画像を表示
+      setTimeout(() => {
+        showAboutImage();
+      }, 1000);
     }, 4000);
   }
+});
+
+// About画像のナビゲーションボタンイベント
+document.addEventListener('DOMContentLoaded', () => {
+  // Canvas初期化
+  initializeCanvas();
+  
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const startBtn = document.getElementById('startBtn');
+  const aboutContainer = document.getElementById('aboutContainer');
+  
+  prevBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    prevAboutImage();
+  });
+  
+  nextBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    nextAboutImage();
+  });
+  
+  // ほしをさがすボタン
+  startBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    hideAboutImage();
+  });
+  
+  // About画像をクリックで非表示
+  aboutContainer.addEventListener('click', (e) => {
+    // ボタンクリック以外の場合
+    if (!e.target.classList.contains('nav-btn') && !e.target.classList.contains('start-btn')) {
+      hideAboutImage();
+    }
+  });
 });
