@@ -143,8 +143,8 @@ const CONSTELLATIONS = [
   {
     name: 'tenbin',
     title: 'てんびん',
-    x: 100,
-    y: 800,
+    x: 2300,
+    y: 2400,
     poemLines: [
       'みぎてと　ひだりてに',
       'ちがうもの　もって',
@@ -201,11 +201,16 @@ CONSTELLATIONS.forEach(constellation => {
     isHovering: false,
     lineImage: new Image(),
     pointImage: new Image(),
+    pictureImage: new Image(),
     lineLoaded: false,
     pointLoaded: false,
+    pictureLoaded: false,
     lineOpacity: 0,
     lineTargetOpacity: 0,
     lineOpacityAnimationStart: 0,
+    pictureOpacity: 0,
+    pictureTargetOpacity: 0,
+    pictureOpacityAnimationStart: 0,
     isNear: false,
     hasPlayedNearSound: false,
     hasPlayedHoverSound: false,
@@ -232,7 +237,7 @@ bellSound.preload = 'auto';
 bellSound.load();
 
 // 星の移動範囲の制限
-const STAR_FIELD_WIDTH = 4000;
+const STAR_FIELD_WIDTH = 5000;
 const STAR_FIELD_HEIGHT = 4000;
 const MIN_OFFSET_X = 0;
 const MIN_OFFSET_Y = 0;
@@ -252,6 +257,11 @@ CONSTELLATIONS.forEach(constellation => {
     state.pointLoaded = true;
   };
   state.pointImage.src = `images/${constellation.name}_point.PNG`;
+  
+  state.pictureImage.onload = () => {
+    state.pictureLoaded = true;
+  };
+  state.pictureImage.src = `images/${constellation.name}_picture.PNG`;
 });
 
 // イージング関数
@@ -326,6 +336,10 @@ function startConstellationAnimation(constellationName) {
     state.lineOpacityAnimationStart = 0;
   }
   
+  // picture画像もフェードインさせる
+  state.pictureTargetOpacity = 1.0;
+  state.pictureOpacityAnimationStart = 0;
+  
   isAnimating = true;
   animationStartTime = Date.now();
   startOffsetX = offsetX;
@@ -352,13 +366,17 @@ function returnToCenter() {
   
   state.lineTargetOpacity = 0;
   state.lineOpacityAnimationStart = 0;
+  
+  // picture画像もフェードアウト
+  state.pictureTargetOpacity = 0;
+  state.pictureOpacityAnimationStart = 0;
 }
 
 // 星を作成
 function createStars(count) {
   for (let i = 0; i < count; i++) {
     stars.push({
-      x: Math.random() * 4000,
+      x: Math.random() * 5000,
       y: Math.random() * 4000,
       radius: Math.random() * 1.5 + 0.5,
       twinkle: Math.random()
@@ -393,8 +411,8 @@ function drawConstellation(constellation, state) {
   const screenX = constellation.x - offsetX;
   const screenY = constellation.y - offsetY;
   
-  // ホバー時のグロー効果
-  if (state.isHovering) {
+  // ホバー時またはアクティブな星座のアニメーション中のグロー効果
+  if (state.isHovering || (activeConstellation === constellation.name && (state.poemAnimationState === 'moving' || state.poemAnimationState === 'showing' || state.poemAnimationState === 'returning'))) {
     ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
     ctx.shadowBlur = 10;
     ctx.shadowOffsetX = 0;
@@ -409,6 +427,13 @@ function drawConstellation(constellation, state) {
   if (state.lineOpacity > 0) {
     ctx.globalAlpha = state.lineOpacity;
     ctx.drawImage(state.lineImage, screenX, screenY, scaledWidth, scaledHeight);
+    ctx.globalAlpha = 1.0;
+  }
+  
+  // picture画像を独立した透明度で描画
+  if (state.pictureOpacity > 0 && state.pictureLoaded) {
+    ctx.globalAlpha = state.pictureOpacity;
+    ctx.drawImage(state.pictureImage, screenX, screenY, scaledWidth, scaledHeight);
     ctx.globalAlpha = 1.0;
   }
   
@@ -487,6 +512,7 @@ function animate() {
   CONSTELLATIONS.forEach(constellation => {
     const state = constellationStates[constellation.name];
     
+    // line画像の透明度アニメーション
     if (state.lineTargetOpacity !== state.lineOpacity) {
       if (state.lineOpacityAnimationStart === 0) {
         state.lineOpacityAnimationStart = now;
@@ -505,6 +531,28 @@ function animate() {
       if (opacityProgress >= 1) {
         state.lineOpacity = state.lineTargetOpacity;
         state.lineOpacityAnimationStart = 0;
+      }
+    }
+    
+    // picture画像の透明度アニメーション
+    if (state.pictureTargetOpacity !== state.pictureOpacity) {
+      if (state.pictureOpacityAnimationStart === 0) {
+        state.pictureOpacityAnimationStart = now;
+      }
+      
+      const pictureOpacityElapsed = now - state.pictureOpacityAnimationStart;
+      const pictureOpacityDuration = (state.pictureTargetOpacity > state.pictureOpacity) ? 2000 : 100;
+      const pictureOpacityProgress = Math.min(pictureOpacityElapsed / pictureOpacityDuration, 1);
+      
+      if (state.pictureTargetOpacity > state.pictureOpacity) {
+        state.pictureOpacity = state.pictureTargetOpacity * pictureOpacityProgress;
+      } else {
+        state.pictureOpacity = state.pictureOpacity * (1 - pictureOpacityProgress);
+      }
+      
+      if (pictureOpacityProgress >= 1) {
+        state.pictureOpacity = state.pictureTargetOpacity;
+        state.pictureOpacityAnimationStart = 0;
       }
     }
   });
@@ -560,6 +608,7 @@ function animate() {
           const fadeProgress = titleFadeElapsed / 1000;
           state.titleOpacity = Math.max(1 - fadeProgress, 0);
           state.lineOpacity = Math.max(1 - fadeProgress, 0);
+          state.pictureOpacity = Math.max(1 - fadeProgress, 0);
         } else {
           state.poemAnimationState = 'returning';
           animationStartTime = now;
@@ -569,6 +618,10 @@ function animate() {
           state.lineOpacity = 0;
           state.lineTargetOpacity = 0;
           state.lineOpacityAnimationStart = 0;
+          
+          state.pictureOpacity = 0;
+          state.pictureTargetOpacity = 0;
+          state.pictureOpacityAnimationStart = 0;
           
           const centerX = window.innerWidth / 2;
           const centerY = window.innerHeight / 2;
@@ -592,10 +645,12 @@ function animate() {
         state.titleOpacity = Math.max(1 - progress, 0);
         state.poemOpacity = Math.max(1 - progress, 0);
         state.lineOpacity = Math.max(1 - progress, 0);
+        state.pictureOpacity = Math.max(1 - progress, 0);
       } else {
         state.titleOpacity = 0;
         state.poemOpacity = 0;
         state.lineOpacity = 0;
+        state.pictureOpacity = 0;
         state.poemAnimationState = 'returning';
         animationStartTime = now;
         startOffsetX = offsetX;
@@ -626,10 +681,14 @@ function animate() {
         isAnimating = false;
         state.titleOpacity = 0;
         state.poemOpacity = 0;
+        state.pictureOpacity = 0;
         activeConstellation = null;
         
         state.lineTargetOpacity = state.isHovering ? 0.6 : 0;
         state.lineOpacityAnimationStart = 0;
+        
+        state.pictureTargetOpacity = 0;
+        state.pictureOpacityAnimationStart = 0;
       }
     }
   }
