@@ -412,8 +412,19 @@ function drawConstellation(constellation, state) {
   const screenY = constellation.y - offsetY;
   
   // ホバー時またはアクティブな星座のアニメーション中のグロー効果
-  if (state.isHovering || (activeConstellation === constellation.name && (state.poemAnimationState === 'moving' || state.poemAnimationState === 'showing' || state.poemAnimationState === 'returning'))) {
-    ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+  const shouldGlow = state.isHovering || (activeConstellation === constellation.name && (state.poemAnimationState === 'moving' || state.poemAnimationState === 'showing' || state.poemAnimationState === 'returning'));
+  
+  if (shouldGlow) {
+    // アクティブな星座の場合、pictureOpacityに応じてグローの強度を調整
+    let glowIntensity = 0.8;
+    if (activeConstellation === constellation.name) {
+      // フェードアウト中やreturning中は pictureOpacity に連動
+      if (state.poemAnimationState === 'showing' || state.poemAnimationState === 'returning') {
+        glowIntensity = 0.8 * Math.max(state.pictureOpacity, 0.1); // 最小10%のグローを維持
+      }
+    }
+    
+    ctx.shadowColor = `rgba(255, 255, 255, ${glowIntensity})`;
     ctx.shadowBlur = 10;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
