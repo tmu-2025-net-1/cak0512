@@ -468,17 +468,14 @@ function drawPoem(constellation, state, screenX, screenY, scaledWidth, scaledHei
   const poemLineHeight = 50;
   const columnSpacing = 100;
   
-  const totalGroups = 4;
+  // 動的にグループの開始・終了インデックスを計算
+  const groupStartIndex = state.currentPoemGroup * 4;
+  const groupEndIndex = Math.min(groupStartIndex + 4, poemLines.length);
   let currentLines = [];
   
-  if (state.currentPoemGroup === 0) {
-    currentLines = poemLines.slice(0, 4);
-  } else if (state.currentPoemGroup === 1) {
-    currentLines = poemLines.slice(4, 8);
-  } else if (state.currentPoemGroup === 2) {
-    currentLines = poemLines.slice(8, 12);
-  } else if (state.currentPoemGroup === 3) {
-    currentLines = poemLines.slice(12, 16);
+  // 現在のグループに表示する行を取得
+  if (groupStartIndex < poemLines.length) {
+    currentLines = poemLines.slice(groupStartIndex, groupEndIndex);
   }
   
   // 詩を描画
@@ -587,11 +584,21 @@ function animate() {
       }
     } else if (state.poemAnimationState === 'showing') {
       const elapsed = now - state.poemAnimationStartTime;
-      const totalGroups = 4;
+      const constellation = CONSTELLATIONS.find(c => c.name === activeConstellation);
+      const poemLines = constellation.poemLines;
+      
+      // 実際の詩の行数に基づいて動的にグループ数を計算
+      const actualTotalGroups = Math.ceil(poemLines.length / 4);
+      const totalGroups = Math.max(1, actualTotalGroups); // 最低1グループは確保
       
       if (state.currentPoemGroup < totalGroups) {
         const cycleTime = 5000;
         const groupElapsed = elapsed - (state.currentPoemGroup * cycleTime);
+        
+        // 現在のグループに対応する行があるかチェック
+        const groupStartIndex = state.currentPoemGroup * 4;
+        const groupEndIndex = Math.min(groupStartIndex + 4, poemLines.length);
+        const hasContent = groupStartIndex < poemLines.length;
         
         if (state.currentPoemGroup === 0) {
           if (groupElapsed <= 1000) {
@@ -603,13 +610,19 @@ function animate() {
           state.titleOpacity = 1;
         }
         
-        if (groupElapsed <= 1000) {
-          state.poemOpacity = Math.min(groupElapsed / 1000, 1);
-        } else if (groupElapsed <= 4000) {
-          state.poemOpacity = 1;
-        } else if (groupElapsed <= 5000) {
-          state.poemOpacity = Math.max(1 - (groupElapsed - 4000) / 1000, 0);
+        if (hasContent) {
+          if (groupElapsed <= 1000) {
+            state.poemOpacity = Math.min(groupElapsed / 1000, 1);
+          } else if (groupElapsed <= 4000) {
+            state.poemOpacity = 1;
+          } else if (groupElapsed <= 5000) {
+            state.poemOpacity = Math.max(1 - (groupElapsed - 4000) / 1000, 0);
+          } else {
+            state.currentPoemGroup++;
+            state.poemOpacity = 0;
+          }
         } else {
+          // 内容がないグループはスキップ
           state.currentPoemGroup++;
           state.poemOpacity = 0;
         }
