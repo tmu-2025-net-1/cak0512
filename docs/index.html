@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <title>ほしのことば</title>
   <link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,6 +18,39 @@
     <button id="prevBtn" class="nav-btn left-btn">◀</button>
     <button id="nextBtn" class="nav-btn right-btn">▶</button>
     <button id="startBtn" class="start-btn">ほしをさがす</button>
+  </div>
+  
+  <!-- Aboutアイコン -->
+  <img id="aboutIcon" src="images/about_icon.PNG" alt="About" class="about-icon">
+  
+  <!-- Aboutページ -->
+  <div id="aboutPage" class="about-page">
+    <div class="about-content">
+      <div class="about-text">
+        <h2>ほしのことば</h2>
+        <p>この星空には、8つの星座が存在します。</p>
+        <p>その星座たちを目と耳を使って探してみてください。</p>
+        <p>星座を見つけることができたら、</p>
+        <p>その星座に込められた詩にふれることができます。</p>
+        <p>星空の旅を、ぜひ楽しんでください。</p>
+        <br>
+        <h3>フォントについて</h3>
+        <p>星座の名前、詩にはオリジナルフォント「NewStarWords」を使用しています。</p>
+        <p>一部のひらがなのみとはなりますが、</p>
+        <p>興味のある方はこちらからダウンロードしてお使いいただけます。</p>
+        <p>ぜひご利用ください。</p>
+        
+        <p><a href="fonts/Newstarwords-Regular.ttf" download="Newstarwords-Regular.ttf" style="color: #ffffff; text-decoration: underline;">NewStarWordsフォントをダウンロード</a></p>
+        <p1>※商用利用はご遠慮ください。</p1>
+        <br>
+        <br>
+        <br>
+        <p>制作　小川千晶</p>
+        
+
+      </div>
+      <button id="aboutBackBtn" class="about-back-btn">もどる</button>
+    </div>
   </div>
   
   <canvas id="starCanvas"></canvas>

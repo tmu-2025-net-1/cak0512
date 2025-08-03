@@ -156,6 +156,131 @@ body.dragging {
   text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
 }
 
+/* Aboutアイコン */
+.about-icon {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  width: 80px;
+  height: 80px;
+  cursor: pointer;
+  z-index: 1000;
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
+}
+
+.about-icon:hover {
+  opacity: 1;
+}
+
+/* Aboutページ */
+.about-page {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: transparent;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+.about-page.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.about-content {
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 15px;
+  padding: 40px;
+  max-width: 600px;
+  max-height: 80vh;
+  text-align: center;
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+}
+
+.about-text {
+  color: white;
+  margin-bottom: 30px;
+  max-height: 60vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+/* Webkit系ブラウザ用のスクロールバーカスタマイズ */
+.about-text::-webkit-scrollbar {
+  width: 8px;
+}
+
+.about-text::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.about-text::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+.about-text::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.about-text h2,h3 {
+  font-family: 'Shippori Mincho B1', serif;
+  font-size: 32px;
+  margin-bottom: 20px;
+  color: #ffffff;
+}
+
+.about-text p {
+  font-family: 'Shippori Mincho B1', serif;
+  font-size: 16px;
+  line-height: 1.6;
+  margin-bottom: 15px;
+  color: #e0e0e0;
+}
+
+.about-text p1 {
+  font-family: 'Shippori Mincho B1', serif;
+  font-size: 12px;
+  line-height: 1.6;
+  margin-bottom: 15px;
+  color: #e0e0e0;
+}
+
+.about-back-btn {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 25px;
+  padding: 12px 30px;
+  color: white;
+  font-family: 'Shippori Mincho B1', sans-serif;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
+  flex-shrink: 0;
+  margin-top: auto;
+}
+
+.about-back-btn:hover {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.2));
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-2px);
+}
+
 @font-face{
   font-family: 'NewStarWords';
   src: url('./fonts/Newstarwords-Regular.ttf') format('truetype');

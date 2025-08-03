@@ -802,7 +802,7 @@ function initializeCanvas() {
 // イベントリスナー追加関数
 function addCanvasEventListeners() {
   canvas.addEventListener('mousedown', (e) => {
-    if (activeConstellation || !starFieldAccessible) return;
+    if (activeConstellation || !starFieldAccessible || aboutPageVisible) return;
     
     // ブラウザのデフォルトドラッグを防止
     e.preventDefault();
@@ -833,7 +833,7 @@ function addCanvasEventListeners() {
   });
 
   canvas.addEventListener('mousemove', (e) => {
-    if (!starFieldAccessible) return;
+    if (!starFieldAccessible || aboutPageVisible) return;
     
     mouseX = e.clientX;
     mouseY = e.clientY;
@@ -851,7 +851,7 @@ function addCanvasEventListeners() {
   });
 
   canvas.addEventListener('click', (e) => {
-    if (!starFieldAccessible) return;
+    if (!starFieldAccessible || aboutPageVisible) return;
     
     initializeAudio();
     
@@ -909,6 +909,52 @@ window.addEventListener('resize', () => {
 let currentAboutImage = 1;
 let aboutVisible = false;
 let starFieldAccessible = false; // 星空操作が許可されているかどうか
+let aboutPageVisible = false; // Aboutページモーダルが表示されているかどうか
+
+// Aboutページモーダルの表示
+function showAboutPage() {
+  const aboutPage = document.getElementById('aboutPage');
+  const aboutText = document.querySelector('.about-text');
+  
+  // スクロール位置を一番上にリセット
+  if (aboutText) {
+    aboutText.scrollTop = 0;
+  }
+  
+  aboutPage.classList.add('visible');
+  aboutPageVisible = true;
+  
+  // 星空操作を無効にする
+  starFieldAccessible = false;
+  canvas.style.pointerEvents = 'none';
+}
+
+// Aboutページモーダルの非表示
+function hideAboutPage() {
+  const aboutPage = document.getElementById('aboutPage');
+  
+  aboutPage.classList.remove('visible');
+  aboutPageVisible = false;
+  
+  // トランジション終了後にスクロール位置をリセット
+  const handleTransitionEnd = (event) => {
+    if (event.target === aboutPage && event.propertyName === 'opacity') {
+      const aboutText = document.querySelector('.about-text');
+      if (aboutText) {
+        aboutText.scrollTop = 0;
+      }
+      aboutPage.removeEventListener('transitionend', handleTransitionEnd);
+    }
+  };
+  
+  aboutPage.addEventListener('transitionend', handleTransitionEnd);
+  
+  // 星空操作を元の状態に戻す（aboutVisibleでなければ有効にする）
+  if (!aboutVisible) {
+    starFieldAccessible = true;
+    canvas.style.pointerEvents = 'auto';
+  }
+}
 
 function showAboutImage() {
   const aboutContainer = document.getElementById('aboutContainer');
@@ -1006,6 +1052,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const nextBtn = document.getElementById('nextBtn');
   const startBtn = document.getElementById('startBtn');
   const aboutContainer = document.getElementById('aboutContainer');
+  const aboutIcon = document.getElementById('aboutIcon');
+  const aboutBackBtn = document.getElementById('aboutBackBtn');
   
   prevBtn.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -1029,5 +1077,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!e.target.classList.contains('nav-btn') && !e.target.classList.contains('start-btn')) {
       hideAboutImage();
     }
+  });
+  
+  // Aboutアイコンクリックでモーダル表示
+  aboutIcon.addEventListener('click', (e) => {
+    e.stopPropagation();
+    showAboutPage();
+  });
+  
+  // Aboutページの「もどる」ボタン
+  aboutBackBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    hideAboutPage();
   });
 });
