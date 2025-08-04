@@ -269,7 +269,7 @@ function easeInOutCubic(t) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
-// 音声再生関数
+// 鈴の音を再生
 function playBellSound(volume) {
   try {
     if (!audioInitialized) {
