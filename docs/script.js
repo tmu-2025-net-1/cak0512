@@ -313,7 +313,7 @@ function initializeAudio() {
   }
 }
 
-// 星座のアニメーション開始
+// 星座のアニメーション
 function startConstellationAnimation(constellationName) {
   if (isAnimating || activeConstellation) return;
   
